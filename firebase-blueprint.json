@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "HealthRecord": {
+      "title": "Health Record",
+      "description": "A record of a health check performed by the user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user who created the record." },
+        "symptoms": { "type": "string", "description": "The symptoms reported by the user." },
+        "imageUsed": { "type": "boolean", "description": "Whether an image was used for the check." },
+        "possibleConditions": { "type": "array", "items": { "type": "string" }, "description": "List of possible conditions identified." },
+        "urgency": { "type": "string", "enum": ["HOME_CARE", "VISIT_SOON", "EMERGENCY"], "description": "The urgency level of the check." },
+        "description": { "type": "string", "description": "A description of the check results." },
+        "homeRemedy": { "type": "string", "description": "Suggested home remedies." },
+        "warning": { "type": "string", "description": "Any warnings or precautions." },
+        "disclaimer": { "type": "string", "description": "Medical disclaimer." },
+        "language": { "type": "string", "description": "The language used for the check." },
+        "timestamp": { "type": "object", "description": "The time the record was created." }
+      },
+      "required": ["userId", "symptoms", "possibleConditions", "urgency", "timestamp"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique identifier for the user." },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "The role of the user." }
+      },
+      "required": ["uid", "role"]
+    }
+  },
+  "firestore": {
+    "/health_records/{recordId}": {
+      "schema": "HealthRecord",
+      "description": "Collection of health records."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles."
+    }
+  }
+}

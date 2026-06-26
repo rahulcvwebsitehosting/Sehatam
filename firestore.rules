@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: health_records
+    // Document ID: auto-generated
+    // Fields:
+    //   - userId: string (required) - UID of the owner
+    //   - symptoms: string (required)
+    //   - imageUsed: bool (optional)
+    //   - possibleConditions: list (required)
+    //   - urgency: string (required) - HOME_CARE, VISIT_SOON, EMERGENCY
+    //   - description: string (optional)
+    //   - homeRemedy: string (optional)
+    //   - warning: string (optional)
+    //   - disclaimer: string (optional)
+    //   - language: string (optional)
+    //   - timestamp: timestamp (required)
+    //
+    // Collection: users
+    // Document ID: userId
+    // Fields:
+    //   - uid: string (required)
+    //   - role: string (required) - user, admin
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "rahulcvfiitjee@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidHealthRecord(data) {
+      return data.userId is string &&
+             data.symptoms is string && data.symptoms.size() < 5000 &&
+             data.possibleConditions is list && data.possibleConditions.size() < 20 &&
+             data.urgency in ['HOME_CARE', 'VISIT_SOON', 'EMERGENCY'] &&
+             data.timestamp is timestamp;
+    }
+
+    function isValidUser(data) {
+      return data.uid is string && data.uid == request.auth.uid &&
+             data.role in ['user', 'admin'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /health_records/{recordId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidHealthRecord(request.resource.data) && request.resource.data.userId == request.auth.uid;
+      allow update: if false; // Health records are immutable for now
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'user';
+      allow update: if isAdmin(); // Only admins can change roles
+      allow delete: if isAdmin();
+    }
+  }
+}
